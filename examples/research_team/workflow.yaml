@@ -1,0 +1,32 @@
+name: research-team
+strategy: supervisor
+supervisor: lead
+
+provider:
+  type: mock
+  responses:
+    market trends: |
+      Enterprises are consolidating around agentic AI platforms, prioritizing
+      vendors who can demonstrate governance, evaluation, and cost controls
+      alongside raw model capability.
+    investment implications: |
+      Recommend increasing investment in orchestration and evaluation tooling
+      over raw model access, since that is where differentiation is shifting.
+  default: "Acknowledged. Proceeding with the assigned task."
+
+agents:
+  - name: researcher
+    system_prompt: You are a meticulous market researcher covering enterprise AI adoption.
+  - name: analyst
+    system_prompt: You are a sharp data analyst who turns research into investment implications.
+  - name: lead
+    system_prompt: You are the team lead. Synthesize your team's findings into one clear recommendation.
+
+tasks:
+  - id: research
+    agent: researcher
+    prompt: Summarize current market trends in enterprise AI adoption.
+  - id: analysis
+    agent: analyst
+    depends_on: [research]
+    prompt: Analyze the research findings for investment implications.
