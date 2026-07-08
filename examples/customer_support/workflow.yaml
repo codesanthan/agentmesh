@@ -1,0 +1,23 @@
+name: customer-support-triage
+strategy: parallel
+
+provider:
+  type: mock
+  responses:
+    billing: "Billing issue triaged: refund policy applies, escalate to billing team."
+    outage: "Outage triaged: sev-2, notify on-call and post a status page update."
+  default: "Ticket triaged: routed to general support queue."
+
+agents:
+  - name: triage_billing
+    system_prompt: You triage billing-related support tickets.
+  - name: triage_technical
+    system_prompt: You triage technical/outage support tickets.
+
+tasks:
+  - id: ticket_1
+    agent: triage_billing
+    prompt: "Customer reports a billing overcharge on their invoice."
+  - id: ticket_2
+    agent: triage_technical
+    prompt: "Customer reports an outage affecting login."
