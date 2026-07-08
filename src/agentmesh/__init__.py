@@ -9,11 +9,11 @@ from agentmesh.orchestration.orchestrator import Orchestrator
 __version__ = "0.1.0"
 
 __all__ = [
-      "Agent",
-      "Message",
-      "Task",
-      "TaskResult",
-      "Orchestrator",
-      "TaskGraph",
-      "__version__",
+    "Agent",
+    "Message",
+    "Task",
+    "TaskResult",
+    "Orchestrator",
+    "TaskGraph",
+    "__version__",
 ]
