@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
-from typing import Callable
 
 
 class Strategy(str, Enum):
