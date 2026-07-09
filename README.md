@@ -65,6 +65,9 @@ flowchart LR
 5. **Providers** are a thin interface (`complete(messages) -> str`). Ship with
    `MockProvider` (deterministic, no API key), `AnthropicProvider`, and
    `OpenAIProvider`. Swapping providers never touches orchestration code.
+   Each agent can specify its own `provider:` block to mix models within a
+   single workflow (e.g. a cheap model for triage, a stronger model for
+   synthesis) — an agent without one falls back to the workflow-level default.
 
 ## Quickstart
 
