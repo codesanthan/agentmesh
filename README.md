@@ -42,11 +42,11 @@ flowchart LR
         W2 --> S[Supervisor synthesis]
     end
 
-    A1 -.provider.complete.-> P[(LLM Provider:\nmock / anthropic / openai)]
+    A1 -.provider.complete.-> P[("LLM Provider:<br/>mock / anthropic / openai")]
     A2 -.provider.complete.-> P
     A3 -.provider.complete.-> P
 
-    S --> R[ExecutionState\n(results + memory)]
+    S --> R["ExecutionState<br/>(results + memory)"]
 ```
 
 1. **Agents** (`agentmesh.core.Agent`) pair a system prompt with an LLM
