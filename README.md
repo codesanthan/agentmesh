@@ -79,6 +79,7 @@ pip install -e ".[dev]"
 # Run the example workflows (no API key required — uses the mock provider)
 agentmesh run examples/research_team/workflow.yaml
 agentmesh run examples/customer_support/workflow.yaml
+agentmesh run examples/trading_research/workflow.yaml
 
 # Run the test suite
 make check
@@ -157,9 +158,10 @@ design decisions and trade-offs.
 - Pinned, minimal dependencies (`pyyaml` at runtime; `pytest`/`ruff` for dev).
 - `make setup`, `make test`, `make lint`, `make check` — the same four
   commands work identically on any machine.
-- CI (`.github/workflows/ci.yml`) runs the full test suite and both example
-  workflows on **Ubuntu, macOS, and Windows**, across **Python 3.10–3.12** —
-  9 combinations on every push, so "works on my machine" isn't a question.
+- CI (`.github/workflows/ci.yml`) runs the full test suite and all three
+  example workflows on **Ubuntu, macOS, and Windows**, across **Python
+  3.10–3.12** — 9 combinations on every push, so "works on my machine" isn't
+  a question.
 
 ## Roadmap
 
