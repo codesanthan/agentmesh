@@ -43,13 +43,18 @@ def load_workflow(source: str | Path | dict[str, Any]) -> tuple[Orchestrator, Ta
         path = Path(source)
         spec = yaml.safe_load(path.read_text())
 
-    provider = _build_provider(spec.get("provider", {"type": "mock"}))
+    default_provider = _build_provider(spec.get("provider", {"type": "mock"}))
 
     agents: dict[str, Agent] = {}
     for agent_spec in spec.get("agents", []):
+        agent_provider = (
+            _build_provider(agent_spec["provider"])
+            if "provider" in agent_spec
+            else default_provider
+        )
         agents[agent_spec["name"]] = Agent(
             name=agent_spec["name"],
-            provider=provider,
+            provider=agent_provider,
             system_prompt=agent_spec.get("system_prompt", "You are a helpful assistant."),
         )
     if not agents:
