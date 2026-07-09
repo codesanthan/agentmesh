@@ -37,3 +37,4 @@ jobs:
         run: |
           agentmesh run examples/research_team/workflow.yaml
           agentmesh run examples/customer_support/workflow.yaml
+          agentmesh run examples/trading_research/workflow.yaml
