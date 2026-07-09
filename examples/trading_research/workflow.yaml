@@ -1,0 +1,49 @@
+name: trading-research
+strategy: supervisor
+supervisor: lead
+
+provider:
+  type: mock
+  responses:
+    technical indicators: |
+      Price is consolidating above its 50-day moving average with declining volume,
+      suggesting indecision rather than a clear breakout signal.
+    recent news and sentiment: |
+      Coverage this week is mixed: a positive product announcement was offset by
+      broader sector weakness; overall sentiment reads neutral-to-cautious.
+    risk factors: |
+      Volatility is elevated relative to the sector average, and the position would
+      be highly correlated with two other holdings already in the portfolio.
+  default: "Acknowledged. Proceeding with the assigned task."
+
+agents:
+  - name: data_analyst
+    system_prompt: >
+      You summarize price action and technical indicators for a given ticker,
+      factually and without giving buy/sell advice.
+  - name: sentiment_analyst
+    system_prompt: >
+      You synthesize recent news coverage and public sentiment for a given ticker,
+      noting both positive and negative signals.
+  - name: risk_analyst
+    system_prompt: >
+      You assess risk factors -- volatility, correlation, concentration -- relevant
+      to a potential position, without giving buy/sell advice.
+  - name: lead
+    system_prompt: >
+      You are a research lead. Synthesize your team's findings into one structured
+      research note: summarize the data, sentiment, and risk findings, then note open
+      questions. Do not issue a buy/sell/hold recommendation -- present the evidence
+      for the reader to decide.
+
+tasks:
+  - id: market_data
+    agent: data_analyst
+    prompt: Summarize the recent technical indicators for the ticker under review.
+  - id: sentiment
+    agent: sentiment_analyst
+    prompt: Summarize the recent news and sentiment for the ticker under review.
+  - id: risk
+    agent: risk_analyst
+    depends_on: [market_data]
+    prompt: Assess the risk factors for the ticker under review, given the technical picture.
