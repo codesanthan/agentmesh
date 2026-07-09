@@ -26,3 +26,28 @@ def test_loaded_workflow_runs_end_to_end():
     state = orchestrator.run(graph)
 
     assert state.results["draft"].output == "ack"
+
+
+def test_agent_level_provider_overrides_workflow_default():
+    workflow = {
+        "strategy": "sequential",
+        "provider": {"type": "mock", "default": "default-response"},
+        "agents": [
+            {"name": "writer", "system_prompt": "You write things."},
+            {
+                "name": "specialist",
+                "system_prompt": "You are a specialist.",
+                "provider": {"type": "mock", "default": "specialist-response"},
+            },
+        ],
+        "tasks": [
+            {"id": "draft", "agent": "writer", "prompt": "Write a haiku."},
+            {"id": "specialist_task", "agent": "specialist", "prompt": "Say something."},
+        ],
+    }
+
+    orchestrator, graph = load_workflow(workflow)
+    state = orchestrator.run(graph)
+
+    assert state.results["draft"].output == "default-response"
+    assert state.results["specialist_task"].output == "specialist-response"
