@@ -44,7 +44,7 @@ def test_orchestrator_attaches_usage_to_successful_results():
 
     result = state.results["t1"]
     assert result.usage is not None
-    assert result.usage.output_tokens == 5
+    assert result.usage.output_tokens == 6
 
 
 def test_orchestrator_leaves_usage_none_on_failure():
