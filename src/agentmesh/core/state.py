@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from agentmesh.core.task import TaskResult
+from agentmesh.core.usage import Usage
 
 
 @dataclass
@@ -34,3 +35,20 @@ class ExecutionState:
             if result is not None:
                 parts.append(f"[{dep_id}] {result.output}")
         return "\n\n".join(parts)
+
+    def total_usage(self) -> Usage:
+        """Sum token/cost usage across every recorded result (skips results with none)."""
+        total = Usage()
+        for result in self.results.values():
+            if result.usage is not None:
+                total = total + result.usage
+        return total
+
+    def usage_by_agent(self) -> dict[str, Usage]:
+        """Sum token/cost usage per agent name (skips results with no usage)."""
+        by_agent: dict[str, Usage] = {}
+        for result in self.results.values():
+            if result.usage is None:
+                continue
+            by_agent[result.agent] = by_agent.get(result.agent, Usage()) + result.usage
+        return by_agent
