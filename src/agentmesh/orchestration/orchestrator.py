@@ -59,13 +59,14 @@ class Orchestrator:
             return
         try:
             context = self.state.context_for(task.depends_on)
-            output = agent.act(task.prompt, context=context)
+            output, usage = agent.act_with_usage(task.prompt, context=context)
             self.state.record(
                 TaskResult(
                     task_id=task.id,
                     agent=task.agent,
                     status=TaskStatus.SUCCEEDED,
                     output=output,
+                    usage=usage,
                 )
             )
         except Exception as exc:  # noqa: BLE001 - surfaced via TaskResult, not swallowed
@@ -84,7 +85,7 @@ class Orchestrator:
             f"[{tid}] ({result.status.value}) {result.output or result.error}"
             for tid, result in self.state.results.items()
         )
-        synthesis = supervisor.act(
+        synthesis, usage = supervisor.act_with_usage(
             "Synthesize the results of the team's work below into a single final answer.",
             context=summary,
         )
@@ -94,5 +95,6 @@ class Orchestrator:
                 agent=self.supervisor,
                 status=TaskStatus.SUCCEEDED,
                 output=synthesis,
+                usage=usage,
             )
         )
