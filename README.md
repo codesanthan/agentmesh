@@ -68,6 +68,14 @@ flowchart LR
    Each agent can specify its own `provider:` block to mix models within a
    single workflow (e.g. a cheap model for triage, a stronger model for
    synthesis) — an agent without one falls back to the workflow-level default.
+6. **Usage tracking** — every provider also implements
+   `complete_with_usage(messages) -> (str, Usage)`, so each successful
+   `TaskResult` carries its own input/output token counts and an estimated
+   cost. `ExecutionState.total_usage()` and `.usage_by_agent()` roll that up
+   across a run, and `agentmesh run workflow.yaml --usage` prints a per-agent
+   cost breakdown at the end. Cost comes from a small built-in pricing table
+   per provider; `MockProvider` always reports `$0.00`, and unlisted models
+   report real token counts with `$0.00` cost rather than guessing.
 
 ## Quickstart
 
@@ -80,6 +88,9 @@ pip install -e ".[dev]"
 agentmesh run examples/research_team/workflow.yaml
 agentmesh run examples/customer_support/workflow.yaml
 agentmesh run examples/trading_research/workflow.yaml
+
+# See a per-agent token/cost breakdown for any run
+agentmesh run examples/research_team/workflow.yaml --usage
 
 # Run the test suite
 make check
@@ -140,7 +151,7 @@ print(state.results["draft"].output)
 
 ```
 src/agentmesh/
-  core/            Agent, Message, Task, ExecutionState
+  core/            Agent, Message, Task, ExecutionState, Usage
   orchestration/   TaskGraph, execution strategies, Orchestrator
   providers/       Provider interface + mock/Anthropic/OpenAI backends
   tools/           Tool interface, registry, builtin tools
