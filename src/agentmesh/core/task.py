@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from agentmesh.core.usage import Usage
+
 
 class TaskStatus(str, Enum):
     PENDING = "pending"
@@ -32,3 +34,4 @@ class TaskResult:
     output: str = ""
     error: str | None = None
     context: dict[str, Any] = field(default_factory=dict)
+    usage: Usage | None = None
