@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from agentmesh.core.message import Message, Role
+from agentmesh.core.usage import Usage
 from agentmesh.providers.base import Provider
 from agentmesh.tools.registry import ToolRegistry
 
@@ -18,6 +19,11 @@ class Agent:
     history: list[Message] = field(default_factory=list)
 
     def act(self, prompt: str, context: str = "") -> str:
+        """Run one turn and return the output text. See `act_with_usage` for token/cost data."""
+        output, _usage = self.act_with_usage(prompt, context=context)
+        return output
+
+    def act_with_usage(self, prompt: str, context: str = "") -> tuple[str, Usage]:
         """Run one turn: build the message list, call the provider, record history."""
         full_prompt = f"{context}\n\n{prompt}".strip() if context else prompt
         messages = [
@@ -25,10 +31,10 @@ class Agent:
             *self.history,
             Message(role=Role.USER, content=full_prompt, sender=self.name),
         ]
-        output = self.provider.complete(messages)
+        output, usage = self.provider.complete_with_usage(messages)
         self.history.append(Message(role=Role.USER, content=full_prompt, sender=self.name))
         self.history.append(Message(role=Role.ASSISTANT, content=output, sender=self.name))
-        return output
+        return output, usage
 
     def use_tool(self, tool_name: str, **kwargs) -> str:
         if self.tools is None:
