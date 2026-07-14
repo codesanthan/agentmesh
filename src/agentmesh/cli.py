@@ -49,8 +49,10 @@ def main(argv: list[str] | None = None) -> int:
                 f"${total.cost_usd:.4f}"
             )
 
-        failures = [r for r in state.results.values() if r.status.value == "failed"]
-        return 1 if failures else 0
+        unresolved = [
+            r for r in state.results.values() if r.status.value in ("failed", "skipped")
+        ]
+        return 1 if unresolved else 0
 
     return 0
 
