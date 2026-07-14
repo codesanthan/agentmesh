@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from agentmesh.core.task import TaskResult
+from agentmesh.core.task import TaskResult, TaskStatus
 from agentmesh.core.usage import Usage
 
 
@@ -25,14 +25,29 @@ class ExecutionState:
             raise KeyError(f"No result recorded yet for task '{task_id}'")
         return result.output
 
+    def succeeded(self, task_id: str) -> bool:
+        """Whether `task_id` has a recorded result with status SUCCEEDED."""
+        result = self.results.get(task_id)
+        return result is not None and result.status == TaskStatus.SUCCEEDED
+
     def context_for(self, depends_on: list[str]) -> str:
-        """Build a text block summarizing the outputs of upstream tasks."""
+        """Build a text block summarizing the outputs of upstream tasks.
+
+        Only successful upstream results contribute context. A failed or
+        skipped dependency contributes nothing here -- including it would
+        hand a downstream agent a blank or misleading `[dep_id] ` block with
+        no indication anything went wrong. Callers that need a task to run
+        only when its dependencies succeeded should check `succeeded()` (the
+        Orchestrator does this automatically before ever calling this
+        method, so a task only reaches here once all its dependencies have
+        already succeeded).
+        """
         if not depends_on:
             return ""
         parts = []
         for dep_id in depends_on:
             result = self.results.get(dep_id)
-            if result is not None:
+            if result is not None and result.status == TaskStatus.SUCCEEDED:
                 parts.append(f"[{dep_id}] {result.output}")
         return "\n\n".join(parts)
 
