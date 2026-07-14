@@ -7,8 +7,10 @@ from typing import Any
 
 import yaml
 
+from agentmesh.core import validators as builtin_validators
 from agentmesh.core.agent import Agent
 from agentmesh.core.task import Task
+from agentmesh.core.validators import Validator
 from agentmesh.orchestration.graph import TaskGraph
 from agentmesh.orchestration.orchestrator import Orchestrator
 from agentmesh.orchestration.strategies import Strategy
@@ -33,6 +35,28 @@ def _build_provider(spec: dict[str, Any]) -> Provider:
 
         return OpenAIProvider(model=spec.get("model", "gpt-4o-mini"))
     raise ConfigError(f"Unknown provider type '{provider_type}'")
+
+
+def _build_validator(spec: dict[str, Any] | list[Any] | None) -> Validator | None:
+    """Build a `Task.validate` callable from a YAML `validate:` block.
+
+    Supported types:
+      - `non_empty` (args: `min_length`, default 1)
+      - `not_contains` (args: `markers`, a list of substrings)
+    Pass a list of specs to require all of them to pass.
+    """
+    if not spec:
+        return None
+    if isinstance(spec, list):
+        checks = [_build_validator(item) for item in spec]
+        return builtin_validators.all_of(*[c for c in checks if c is not None])
+
+    validator_type = spec.get("type")
+    if validator_type == "non_empty":
+        return builtin_validators.non_empty(min_length=spec.get("min_length", 1))
+    if validator_type == "not_contains":
+        return builtin_validators.not_contains(*spec.get("markers", []))
+    raise ConfigError(f"Unknown validator type '{validator_type}'")
 
 
 def load_workflow(source: str | Path | dict[str, Any]) -> tuple[Orchestrator, TaskGraph]:
@@ -68,6 +92,8 @@ def load_workflow(source: str | Path | dict[str, Any]) -> tuple[Orchestrator, Ta
                 agent=task_spec["agent"],
                 prompt=task_spec["prompt"],
                 depends_on=task_spec.get("depends_on", []),
+                max_retries=task_spec.get("max_retries", 0),
+                validate=_build_validator(task_spec.get("validate")),
             )
         )
     if not graph.tasks:

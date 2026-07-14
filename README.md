@@ -76,6 +76,16 @@ flowchart LR
    cost breakdown at the end. Cost comes from a small built-in pricing table
    per provider; `MockProvider` always reports `$0.00`, and unlisted models
    report real token counts with `$0.00` cost rather than guessing.
+7. **Retries with failure context, and a hook for "garbage" output** — set
+   `max_retries` on a task and, on failure, the orchestrator re-runs it with a
+   `[Retry N feedback: ...]` block describing what went wrong appended to its
+   context, so the agent sees its own mistake instead of repeating it blindly.
+   This covers both raised exceptions and `Task.validate`, an optional
+   `Callable[[str], str | None]` that inspects output *after* a successful
+   call returns -- catching an empty string, a refusal, or a truncated answer
+   that no exception would ever surface. And a dependency that never
+   succeeds doesn't silently poison what comes after it: dependents are
+   recorded as `TaskStatus.SKIPPED` instead of running on missing context.
 
 ## Quickstart
 
@@ -123,6 +133,10 @@ tasks:
     agent: analyst
     depends_on: [research]
     prompt: Analyze the research findings for investment implications.
+    max_retries: 2
+    validate:
+      type: non_empty
+      min_length: 50
 ```
 
 ```bash
@@ -151,7 +165,7 @@ print(state.results["draft"].output)
 
 ```
 src/agentmesh/
-  core/            Agent, Message, Task, ExecutionState, Usage
+  core/            Agent, Message, Task, ExecutionState, Usage, validators
   orchestration/   TaskGraph, execution strategies, Orchestrator
   providers/       Provider interface + mock/Anthropic/OpenAI backends
   tools/           Tool interface, registry, builtin tools
@@ -178,8 +192,9 @@ design decisions and trade-offs.
 
 - Async provider support for higher-throughput parallel waves.
 - Streaming output from providers.
-- A retry/backoff policy per task.
 - Persistent execution state (resume a partially-failed run).
+- Configurable dependency-failure policy (skip is the only option today;
+  "run anyway with a flagged gap" is a reasonable ask for some workflows).
 
 ## Contributing
 
