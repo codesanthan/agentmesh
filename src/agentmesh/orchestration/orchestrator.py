@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from agentmesh.core.agent import Agent
 from agentmesh.core.state import ExecutionState
 from agentmesh.core.task import Task, TaskResult, TaskStatus
+from agentmesh.core.usage import Usage
 from agentmesh.orchestration.graph import TaskGraph
 from agentmesh.orchestration.strategies import Strategy, run_wave_parallel, run_wave_sequential
 
@@ -57,27 +58,71 @@ class Orchestrator:
                 )
             )
             return
-        try:
+
+        # A task never runs on a partial or corrupted picture of its
+        # dependencies. If any upstream task didn't succeed (whether it
+        # failed outright or was itself skipped), skip this one too instead
+        # of silently handing it a blank context and letting bad state
+        # cascade further downstream.
+        blocking = [dep for dep in task.depends_on if not self.state.succeeded(dep)]
+        if blocking:
+            self.state.record(
+                TaskResult(
+                    task_id=task.id,
+                    agent=task.agent,
+                    status=TaskStatus.SKIPPED,
+                    error=(
+                        "skipped: upstream dependency(ies) did not succeed: "
+                        + ", ".join(blocking)
+                    ),
+                )
+            )
+            return
+
+        max_attempts = task.max_retries + 1
+        total_usage = Usage()
+        last_error: str | None = None
+
+        for attempt in range(1, max_attempts + 1):
             context = self.state.context_for(task.depends_on)
-            output, usage = agent.act_with_usage(task.prompt, context=context)
-            self.state.record(
-                TaskResult(
-                    task_id=task.id,
-                    agent=task.agent,
-                    status=TaskStatus.SUCCEEDED,
-                    output=output,
-                    usage=usage,
+            if attempt > 1 and last_error:
+                context = (
+                    f"{context}\n\n[Retry {attempt - 1} feedback: the previous attempt "
+                    f"failed because: {last_error}. Correct this and try again.]"
+                ).strip()
+
+            try:
+                output, usage = agent.act_with_usage(task.prompt, context=context)
+            except Exception as exc:  # noqa: BLE001 - surfaced via TaskResult, not swallowed
+                last_error = str(exc)
+                continue
+
+            total_usage = total_usage + usage
+            reason = task.validate(output) if task.validate is not None else None
+            if reason is None:
+                self.state.record(
+                    TaskResult(
+                        task_id=task.id,
+                        agent=task.agent,
+                        status=TaskStatus.SUCCEEDED,
+                        output=output,
+                        usage=total_usage,
+                        attempts=attempt,
+                    )
                 )
+                return
+            last_error = reason
+
+        self.state.record(
+            TaskResult(
+                task_id=task.id,
+                agent=task.agent,
+                status=TaskStatus.FAILED,
+                error=last_error or "task failed with no error detail",
+                usage=total_usage,
+                attempts=max_attempts,
             )
-        except Exception as exc:  # noqa: BLE001 - surfaced via TaskResult, not swallowed
-            self.state.record(
-                TaskResult(
-                    task_id=task.id,
-                    agent=task.agent,
-                    status=TaskStatus.FAILED,
-                    error=str(exc),
-                )
-            )
+        )
 
     def _run_supervisor_synthesis(self) -> None:
         supervisor = self.agents[self.supervisor]
