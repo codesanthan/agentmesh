@@ -41,6 +41,7 @@ def _build_provider(spec: dict[str, Any]) -> Provider:
     if provider_type == "nemotron":
         from agentmesh.providers.nemotron_provider import NemotronProvider
 
+        price = spec.get("price_per_million_tokens")
         return NemotronProvider(
             model=spec.get("model", "nvidia/nemotron-3-ultra-550b-a55b"),
             max_tokens=spec.get("max_tokens", 16384),
@@ -48,6 +49,7 @@ def _build_provider(spec: dict[str, Any]) -> Provider:
             top_p=spec.get("top_p", 0.95),
             enable_thinking=spec.get("enable_thinking", True),
             reasoning_budget=spec.get("reasoning_budget", 16384),
+            price_per_million_tokens=tuple(price) if price else None,
         )
     raise ConfigError(f"Unknown provider type '{provider_type}'")
 

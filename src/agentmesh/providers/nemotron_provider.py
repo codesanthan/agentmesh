@@ -27,6 +27,7 @@ class NemotronProvider(Provider):
         top_p: float = 0.95,
         enable_thinking: bool = True,
         reasoning_budget: int = 16384,
+        price_per_million_tokens: tuple[float, float] | None = None,
     ):
         try:
             from openai import OpenAI
@@ -43,6 +44,7 @@ class NemotronProvider(Provider):
         self.top_p = top_p
         self.enable_thinking = enable_thinking
         self.reasoning_budget = reasoning_budget
+        self.price_per_million_tokens = price_per_million_tokens
         self._client = OpenAI(
             base_url=base_url,
             api_key=api_key or os.environ.get("NVIDIA_API_KEY"),
@@ -83,6 +85,12 @@ class NemotronProvider(Provider):
 
         text = "".join(content_parts)
         # NVIDIA API Catalog pricing isn't published in a stable, checkable
-        # form here -- report real token counts with $0.00 cost rather than
-        # guessing, matching how unlisted models are handled elsewhere.
-        return text, Usage(input_tokens=input_tokens, output_tokens=output_tokens, cost_usd=0.0)
+        # form here -- report real token counts and, unless the caller
+        # supplies price_per_million_tokens, $0.00 cost rather than guessing.
+        cost_usd = 0.0
+        if self.price_per_million_tokens is not None:
+            in_price, out_price = self.price_per_million_tokens
+            cost_usd = (input_tokens * in_price + output_tokens * out_price) / 1_000_000
+        return text, Usage(
+            input_tokens=input_tokens, output_tokens=output_tokens, cost_usd=cost_usd
+        )
