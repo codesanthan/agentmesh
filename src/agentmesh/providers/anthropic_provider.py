@@ -13,10 +13,12 @@ from agentmesh.providers.base import Provider
 # https://www.anthropic.com/pricing for current rates. Keys are checked as
 # substrings of the model name, most specific first.
 PRICING_PER_MILLION_TOKENS: dict[str, tuple[float, float]] = {
-    "claude-opus-4": (15.00, 75.00),
-    "claude-sonnet-4-5": (3.00, 15.00),
+    "claude-opus-4-8": (5.00, 25.00),
+    "claude-opus-4": (5.00, 25.00),
+    "claude-sonnet-5": (3.00, 15.00),
     "claude-sonnet": (3.00, 15.00),
-    "claude-haiku": (0.80, 4.00),
+    "claude-haiku-4-5": (1.00, 5.00),
+    "claude-haiku": (1.00, 5.00),
 }
 
 
@@ -32,9 +34,10 @@ class AnthropicProvider(Provider):
 
     def __init__(
         self,
-        model: str = "claude-sonnet-4-5",
+        model: str = "claude-sonnet-5",
         api_key: str | None = None,
         max_tokens: int = 1024,
+        enable_web_search: bool = False,
     ):
         try:
             import anthropic
@@ -46,6 +49,7 @@ class AnthropicProvider(Provider):
 
         self.model = model
         self.max_tokens = max_tokens
+        self.enable_web_search = enable_web_search
         self._client = anthropic.Anthropic(api_key=api_key or os.environ.get("ANTHROPIC_API_KEY"))
 
     def complete(self, messages: list[Message], **kwargs) -> str:
@@ -59,11 +63,15 @@ class AnthropicProvider(Provider):
             if m.role in (Role.USER, Role.ASSISTANT)
         ]
         model = kwargs.get("model", self.model)
+        extra: dict = {}
+        if self.enable_web_search:
+            extra["tools"] = [{"type": "web_search_20260209", "name": "web_search"}]
         response = self._client.messages.create(
             model=model,
             max_tokens=kwargs.get("max_tokens", self.max_tokens),
             system=system or None,
             messages=turns,
+            **extra,
         )
         text = "".join(
             block.text for block in response.content if getattr(block, "type", "") == "text"

@@ -29,11 +29,26 @@ def _build_provider(spec: dict[str, Any]) -> Provider:
     if provider_type == "anthropic":
         from agentmesh.providers.anthropic_provider import AnthropicProvider
 
-        return AnthropicProvider(model=spec.get("model", "claude-sonnet-4-5"))
+        return AnthropicProvider(
+            model=spec.get("model", "claude-sonnet-5"),
+            max_tokens=spec.get("max_tokens", 1024),
+            enable_web_search=spec.get("web_search", False),
+        )
     if provider_type == "openai":
         from agentmesh.providers.openai_provider import OpenAIProvider
 
         return OpenAIProvider(model=spec.get("model", "gpt-4o-mini"))
+    if provider_type == "nemotron":
+        from agentmesh.providers.nemotron_provider import NemotronProvider
+
+        return NemotronProvider(
+            model=spec.get("model", "nvidia/nemotron-3-ultra-550b-a55b"),
+            max_tokens=spec.get("max_tokens", 16384),
+            temperature=spec.get("temperature", 1),
+            top_p=spec.get("top_p", 0.95),
+            enable_thinking=spec.get("enable_thinking", True),
+            reasoning_budget=spec.get("reasoning_budget", 16384),
+        )
     raise ConfigError(f"Unknown provider type '{provider_type}'")
 
 
